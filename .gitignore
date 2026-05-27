@@ -1,0 +1,11 @@
+bin/
+obj/
+*.user
+.vs/
+*.suo
+*.userosscache
+*.sln.docstates
+packages/
+*.nupkg
+.DS_Store
+Thumbs.db
