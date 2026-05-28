@@ -8,17 +8,19 @@ import {
 } from '../../store/changesSlice'
 import './ChangesSidebar.css'
 
-const STATUS_LETTER: Record<string, string> = {
-  modified: 'M', added: 'A', deleted: 'D',
+const STATUS_SYMBOL: Record<string, string> = {
+  modified: 'M', added: '+', deleted: '−',
   conflicted: '!', unversioned: '?', missing: '~', replaced: 'R',
 }
 
-const STATUS_COLOR: Record<string, string> = {
-  modified:    'var(--color-modified)',
-  added:       'var(--color-added)',
-  deleted:     'var(--color-deleted)',
-  conflicted:  'var(--color-conflicted)',
-  unversioned: 'var(--color-unversioned)',
+const STATUS_BG: Record<string, string> = {
+  modified:    '#e3b341',
+  added:       '#57ab5a',
+  deleted:     '#e5534b',
+  conflicted:  '#f47067',
+  unversioned: '#768390',
+  missing:     '#e5534b',
+  replaced:    '#db61a2',
 }
 
 export function ChangesSidebar(): JSX.Element {
@@ -102,10 +104,10 @@ export function ChangesSidebar(): JSX.Element {
             <span className="file-name" title={f.path}>{f.relativePath}</span>
             <span
               className="file-status-icon"
-              style={{ color: STATUS_COLOR[f.status] ?? 'var(--text-muted)' }}
+              style={{ background: STATUS_BG[f.status] ?? '#768390' }}
               title={f.status}
             >
-              {STATUS_LETTER[f.status] ?? '?'}
+              {STATUS_SYMBOL[f.status] ?? '?'}
             </span>
           </li>
         ))}

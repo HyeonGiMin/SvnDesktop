@@ -89,8 +89,10 @@
 }
 
 .file-status-icon {
-  font-size: 11px; font-weight: 700; font-family: monospace;
-  width: 14px; text-align: center; flex-shrink: 0;
+  font-size: 10px; font-weight: 700; font-family: monospace;
+  width: 18px; height: 18px; border-radius: 3px;
+  display: flex; align-items: center; justify-content: center;
+  flex-shrink: 0; color: #fff;
 }
 
 .file-empty {
