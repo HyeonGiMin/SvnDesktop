@@ -17,18 +17,10 @@ export function HistoryView(): JSX.Element {
   )
   const repoPath = useSelector((s: RootState) => s.repositories.selected?.path ?? '')
 
-  if (!repoPath) {
-    return (
-      <div className="history-empty">
-        <p>Select a repository from the sidebar</p>
-      </div>
-    )
-  }
-
   return (
     <div className="history-layout">
       <div className="log-panel">
-        {loading && <div className="log-loading">Loading…</div>}
+        {loading && <div className="log-loading">Loading history…</div>}
         {error && <div className="log-error">{error}</div>}
         <ul className="log-list">
           {entries.map((entry) => (
@@ -60,6 +52,9 @@ export function HistoryView(): JSX.Element {
               <span className="log-detail-date">{formatDate(selectedEntry.date)}</span>
             </div>
             <p className="log-detail-msg">{selectedEntry.message || '(no message)'}</p>
+            <div className="log-detail-paths-header">
+              {selectedEntry.paths.length} changed file{selectedEntry.paths.length !== 1 ? 's' : ''}
+            </div>
             <div className="log-detail-paths">
               {selectedEntry.paths.map((p, i) => (
                 <div

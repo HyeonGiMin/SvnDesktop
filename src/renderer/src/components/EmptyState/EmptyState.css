@@ -1,0 +1,42 @@
+.empty-state {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 16px;
+  padding: 40px;
+  text-align: center;
+}
+
+.empty-illustration {
+  opacity: 0.6;
+  margin-bottom: 8px;
+}
+
+.empty-title {
+  font-size: 20px;
+  font-weight: 600;
+  color: var(--text);
+  margin: 0;
+}
+
+.empty-desc {
+  font-size: 14px;
+  color: var(--text-sub);
+  max-width: 400px;
+  line-height: 1.6;
+}
+
+.empty-hint {
+  font-size: 12px;
+  color: var(--text-muted);
+  max-width: 360px;
+  line-height: 1.6;
+  padding: 10px 16px;
+  background: var(--bg-panel);
+  border: 1px solid var(--border);
+  border-radius: 6px;
+}
+
+.empty-hint strong { color: var(--text-sub); }

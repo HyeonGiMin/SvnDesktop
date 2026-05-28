@@ -5,28 +5,39 @@
 }
 
 :root {
-  --bg-base:      #1e1e2e;
-  --bg-surface:   #181825;
-  --bg-overlay:   #313244;
-  --border:       #45475a;
-  --text:         #cdd6f4;
-  --text-sub:     #a6adc8;
-  --text-muted:   #6c7086;
-  --accent:       #89b4fa;
-  --green:        #a6e3a1;
-  --red:          #f38ba8;
-  --yellow:       #f9e2af;
+  /* GitHub Desktop dark theme */
+  --bg-base:      #1e2028;
+  --bg-surface:   #252932;
+  --bg-panel:     #2a2e3d;
+  --bg-hover:     #32374a;
+  --bg-active:    #3a3f52;
+  --border:       #373d4d;
+  --border-light: #2d3244;
+
+  --text:         #e6edf3;
+  --text-sub:     #8d96a0;
+  --text-muted:   #5c6370;
+
+  --accent:       #58a6ff;
+  --accent-hover: #79b8ff;
+  --green:        #3fb950;
+  --red:          #f85149;
+  --yellow:       #d29922;
+  --purple:       #bc8cff;
+
+  --toolbar-h:    50px;
   --sidebar-w:    240px;
-  --toolbar-h:    32px;
+  --commit-h:     160px;
 }
 
 html, body, #root {
   height: 100%;
   overflow: hidden;
-  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', system-ui, sans-serif;
   font-size: 13px;
   color: var(--text);
   background: var(--bg-base);
+  -webkit-font-smoothing: antialiased;
 }
 
 button {
@@ -39,18 +50,21 @@ button {
 
 input, textarea {
   font: inherit;
-  color: inherit;
-  background: var(--bg-overlay);
+  color: var(--text);
+  background: var(--bg-panel);
   border: 1px solid var(--border);
-  border-radius: 4px;
-  padding: 4px 8px;
+  border-radius: 6px;
+  padding: 6px 10px;
   outline: none;
+  transition: border-color 0.15s;
 }
 
 input:focus, textarea:focus {
   border-color: var(--accent);
+  box-shadow: 0 0 0 3px rgba(88, 166, 255, 0.12);
 }
 
 ::-webkit-scrollbar { width: 6px; height: 6px; }
 ::-webkit-scrollbar-track { background: transparent; }
 ::-webkit-scrollbar-thumb { background: var(--border); border-radius: 3px; }
+::-webkit-scrollbar-thumb:hover { background: #4a5168; }
