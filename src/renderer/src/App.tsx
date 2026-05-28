@@ -1,6 +1,7 @@
 import React, { useState } from 'react'
 import { useSelector } from 'react-redux'
 import { RootState } from './store'
+import { TitleBar } from './components/TitleBar/TitleBar'
 import { Toolbar } from './components/Toolbar/Toolbar'
 import { TabBar } from './components/TabBar/TabBar'
 import { ChangesSidebar } from './components/Changes/ChangesSidebar'
@@ -21,6 +22,7 @@ export default function App(): JSX.Element {
 
   return (
     <div className="app">
+      <TitleBar />
       <Toolbar />
 
       {selected ? (

@@ -2,6 +2,20 @@ import { contextBridge, ipcRenderer } from 'electron'
 import { IPC } from '../shared/types'
 
 const api = {
+  window: {
+    minimize: () => ipcRenderer.invoke(IPC.WINDOW_MINIMIZE),
+    maximize: () => ipcRenderer.invoke(IPC.WINDOW_MAXIMIZE),
+    close: () => ipcRenderer.invoke(IPC.WINDOW_CLOSE),
+    isMaximized: (): Promise<boolean> => ipcRenderer.invoke(IPC.WINDOW_IS_MAXIMIZED),
+    onMaximizeChange: (cb: (maximized: boolean) => void) => {
+      ipcRenderer.on('window:maximized', () => cb(true))
+      ipcRenderer.on('window:unmaximized', () => cb(false))
+    },
+  },
+  menu: {
+    popup: (menuId: string, x: number, y: number) =>
+      ipcRenderer.invoke(IPC.MENU_POPUP, menuId, x, y),
+  },
   repos: {
     list: () => ipcRenderer.invoke(IPC.REPOS_LIST),
     add: (name: string, path: string) => ipcRenderer.invoke(IPC.REPOS_ADD, name, path),

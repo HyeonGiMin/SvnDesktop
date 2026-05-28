@@ -1,0 +1,71 @@
+.titlebar {
+  height: 28px;
+  background: #161b22;
+  display: flex;
+  align-items: center;
+  flex-shrink: 0;
+  -webkit-app-region: drag;
+  user-select: none;
+}
+
+.titlebar-app-icon {
+  width: 36px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  -webkit-app-region: no-drag;
+}
+
+/* ── Menu items ── */
+.titlebar-menu {
+  display: flex;
+  align-items: center;
+  -webkit-app-region: no-drag;
+}
+
+.titlebar-menu-item {
+  padding: 0 8px;
+  height: 28px;
+  font-size: 12px;
+  font-family: 'Segoe UI', system-ui, sans-serif;
+  color: #cdd9e5;
+  background: transparent;
+  border: none;
+  cursor: pointer;
+  border-radius: 3px;
+  transition: background 0.1s;
+  -webkit-app-region: no-drag;
+}
+.titlebar-menu-item:hover { background: rgba(255,255,255,0.1); }
+.titlebar-menu-item:active { background: rgba(255,255,255,0.15); }
+
+/* ── Spacer (drag region in middle) ── */
+.titlebar-drag {
+  flex: 1;
+  -webkit-app-region: drag;
+}
+
+/* ── Window controls ── */
+.titlebar-controls {
+  display: flex;
+  align-items: stretch;
+  height: 28px;
+  -webkit-app-region: no-drag;
+}
+
+.titlebar-ctrl {
+  width: 46px;
+  height: 28px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: transparent;
+  border: none;
+  color: #cdd9e5;
+  cursor: pointer;
+  transition: background 0.1s;
+  -webkit-app-region: no-drag;
+}
+.titlebar-ctrl:hover { background: rgba(255,255,255,0.1); }
+.titlebar-ctrl.close:hover { background: #c42b1c; color: #fff; }

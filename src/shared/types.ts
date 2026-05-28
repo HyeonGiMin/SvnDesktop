@@ -72,4 +72,9 @@ export const IPC = {
   SVN_UPDATE: 'svn:update',
   SVN_REVERT: 'svn:revert',
   SVN_ADD: 'svn:add',
+  WINDOW_MINIMIZE: 'window:minimize',
+  WINDOW_MAXIMIZE: 'window:maximize',
+  WINDOW_CLOSE: 'window:close',
+  WINDOW_IS_MAXIMIZED: 'window:isMaximized',
+  MENU_POPUP: 'menu:popup',
 } as const
