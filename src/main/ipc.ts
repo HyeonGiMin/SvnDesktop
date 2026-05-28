@@ -1,5 +1,4 @@
 import { ipcMain } from 'electron'
-import { v4 as uuid } from 'crypto'
 import { IPC, Repository } from '../shared/types'
 import * as svn from './svn/SvnClient'
 import { loadRepositories, saveRepositories } from './svn/RepositoryStore'
@@ -28,6 +27,8 @@ export function registerIpcHandlers(): void {
   })
 
   // ── SVN operations ─────────────────────────────────────────────────────────
+  ipcMain.handle(IPC.SVN_INFO, (_e, repoPath: string) => svn.getInfo(repoPath))
+
   ipcMain.handle(IPC.SVN_STATUS, (_e, repoPath: string) => svn.getStatus(repoPath))
 
   ipcMain.handle(

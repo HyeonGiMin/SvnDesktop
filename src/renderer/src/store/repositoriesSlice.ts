@@ -1,9 +1,10 @@
 import { createSlice, createAsyncThunk, PayloadAction } from '@reduxjs/toolkit'
-import { Repository } from '@shared/types'
+import { Repository, SvnInfo } from '@shared/types'
 
 interface RepositoriesState {
   list: Repository[]
   selected: Repository | null
+  svnInfo: SvnInfo | null
   loading: boolean
   error: string | null
 }
@@ -11,9 +12,15 @@ interface RepositoriesState {
 const initialState: RepositoriesState = {
   list: [],
   selected: null,
+  svnInfo: null,
   loading: false,
   error: null,
 }
+
+export const fetchSvnInfo = createAsyncThunk(
+  'repositories/fetchSvnInfo',
+  (repoPath: string) => window.api.svn.info(repoPath)
+)
 
 export const fetchRepositories = createAsyncThunk('repositories/fetchAll', () =>
   window.api.repos.list()
@@ -55,6 +62,12 @@ const repositoriesSlice = createSlice({
         const exists = state.list.find((r) => r.id === action.payload.id)
         if (!exists) state.list.push(action.payload)
         state.selected = action.payload
+      })
+      .addCase(fetchSvnInfo.fulfilled, (state, action) => {
+        state.svnInfo = action.payload
+      })
+      .addCase(fetchSvnInfo.rejected, (state) => {
+        state.svnInfo = null
       })
       .addCase(removeRepository.fulfilled, (state, action) => {
         state.list = state.list.filter((r) => r.id !== action.payload)

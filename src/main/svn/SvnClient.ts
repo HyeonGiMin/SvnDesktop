@@ -1,6 +1,6 @@
 import { exec } from 'child_process'
 import { promisify } from 'util'
-import { SvnFileStatus, SvnLogEntry, SvnDiff, DiffHunk, DiffLine } from '../../shared/types'
+import { SvnFileStatus, SvnLogEntry, SvnDiff, SvnInfo, DiffHunk, DiffLine } from '../../shared/types'
 
 const execAsync = promisify(exec)
 
@@ -35,6 +35,11 @@ export async function getDiff(repoPath: string, filePath: string): Promise<SvnDi
   return parseDiff(filePath, output)
 }
 
+export async function getInfo(repoPath: string): Promise<SvnInfo> {
+  const output = await run('info --xml', repoPath)
+  return parseInfoXml(output)
+}
+
 export async function update(repoPath: string): Promise<string> {
   return run('update', repoPath)
 }
@@ -50,6 +55,15 @@ export async function addUnversioned(repoPath: string, paths: string[]): Promise
 }
 
 // ── XML parsers ──────────────────────────────────────────────────────────────
+
+function parseInfoXml(xml: string): SvnInfo {
+  const url = extractTag(xml, 'url') || ''
+  const revMatch = xml.match(/revision="(\d+)"/)
+  const revision = revMatch ? parseInt(revMatch[1], 10) : 0
+  const author = extractTag(xml, 'author') || ''
+  const lastChangedDate = extractTag(xml, 'date') || ''
+  return { url, revision, author, lastChangedDate }
+}
 
 function parseStatusXml(xml: string, repoPath: string): SvnFileStatus[] {
   const results: SvnFileStatus[] = []

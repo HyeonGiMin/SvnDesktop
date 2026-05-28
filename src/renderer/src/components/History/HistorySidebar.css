@@ -1,0 +1,38 @@
+.history-sidebar {
+  display: flex; flex-direction: column;
+  height: 100%; overflow-y: auto;
+  background: var(--bg-overlay);
+}
+
+.history-loading, .history-error, .history-empty {
+  padding: 20px var(--spacing);
+  text-align: center; font-size: 12px; color: var(--text-muted);
+}
+.history-error { color: var(--color-deleted); }
+
+.history-list { list-style: none; }
+
+.history-item {
+  padding: 8px var(--spacing);
+  cursor: pointer;
+  border-bottom: 1px solid var(--border-muted);
+  transition: background 0.08s;
+}
+.history-item:hover { background: var(--bg-hover); }
+.history-item.selected { background: var(--bg-selected); }
+
+.history-item-header {
+  display: flex; align-items: center; gap: 8px; margin-bottom: 3px;
+}
+.history-rev {
+  font-size: 11px; font-weight: 700; font-family: monospace;
+  color: var(--accent);
+  background: rgba(56,139,253,0.1);
+  padding: 1px 5px; border-radius: 3px;
+}
+.history-author { font-size: 11px; color: var(--text-secondary); flex: 1; }
+.history-date { font-size: 11px; color: var(--text-muted); }
+.history-msg {
+  font-size: 12px; color: var(--text);
+  overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+}

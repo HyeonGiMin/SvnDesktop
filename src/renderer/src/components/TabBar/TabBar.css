@@ -1,0 +1,56 @@
+/* GitHub Desktop tab bar — 29px height, white bg, blue underline */
+.tab-bar {
+  height: var(--tab-bar-h);
+  display: flex;
+  flex-direction: row;
+  background: var(--bg-overlay);
+  border-bottom: 1px solid var(--border);
+  flex-shrink: 0;
+}
+
+.tab-item {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  font-size: 12px;
+  font-weight: 400;
+  color: var(--text-secondary);
+  background: transparent;
+  border: none;
+  border-bottom: 2px solid transparent;
+  cursor: pointer;
+  padding: 0 8px;
+  transition: color 0.12s, border-color 0.12s;
+  position: relative;
+  bottom: -1px; /* overlap the border-bottom of tab-bar */
+}
+
+.tab-item:hover { color: var(--text); }
+
+.tab-item.active {
+  color: var(--text);
+  font-weight: 600;
+  border-bottom-color: var(--accent);
+}
+
+.tab-badge {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 18px;
+  height: 16px;
+  padding: 0 5px;
+  border-radius: 8px;
+  font-size: 10px;
+  font-weight: 600;
+  background: #484f58;
+  color: var(--text);
+  line-height: 1;
+}
+
+.tab-item.active .tab-badge {
+  background: #316dca;
+  color: #fff;
+}

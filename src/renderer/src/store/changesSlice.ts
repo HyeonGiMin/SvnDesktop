@@ -5,6 +5,8 @@ interface ChangesState {
   files: SvnFileStatus[]
   checkedPaths: string[]
   commitMessage: string
+  summary: string
+  description: string
   activeDiff: SvnDiff | null
   loading: boolean
   committing: boolean
@@ -15,6 +17,8 @@ const initialState: ChangesState = {
   files: [],
   checkedPaths: [],
   commitMessage: '',
+  summary: '',
+  description: '',
   activeDiff: null,
   loading: false,
   committing: false,
@@ -61,6 +65,12 @@ const changesSlice = createSlice({
     setCommitMessage(state, action: PayloadAction<string>) {
       state.commitMessage = action.payload
     },
+    setSummary(state, action: PayloadAction<string>) {
+      state.summary = action.payload
+    },
+    setDescription(state, action: PayloadAction<string>) {
+      state.description = action.payload
+    },
     clearDiff(state) {
       state.activeDiff = null
     },
@@ -95,6 +105,8 @@ const changesSlice = createSlice({
         state.files = []
         state.checkedPaths = []
         state.commitMessage = ''
+        state.summary = ''
+        state.description = ''
         state.activeDiff = null
       })
       .addCase(commitChanges.rejected, (state, action) => {
@@ -109,5 +121,5 @@ const changesSlice = createSlice({
   },
 })
 
-export const { setCheckedPaths, togglePath, setCommitMessage, clearDiff } = changesSlice.actions
+export const { setCheckedPaths, togglePath, setCommitMessage, setSummary, setDescription, clearDiff } = changesSlice.actions
 export default changesSlice.reducer

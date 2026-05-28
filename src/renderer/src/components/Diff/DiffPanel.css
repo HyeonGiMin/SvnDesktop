@@ -1,0 +1,145 @@
+.diff-panel {
+  display: flex; flex-direction: column;
+  height: 100%; overflow: hidden;
+}
+
+.diff-panel-empty {
+  flex: 1; display: flex; align-items: center; justify-content: center;
+  color: var(--text-muted); font-size: 13px;
+}
+
+/* ── File header ── */
+.diff-file-header {
+  display: flex; align-items: center; justify-content: space-between;
+  padding: 0 var(--spacing);
+  height: var(--tab-bar-h);
+  background: var(--bg-subtle);
+  border-bottom: 1px solid var(--border);
+  flex-shrink: 0;
+}
+
+.diff-file-path {
+  font-size: 12px; font-family: 'Consolas', 'Cascadia Code', monospace;
+  color: var(--text-secondary);
+  overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+}
+
+.diff-header-actions { display: flex; gap: 4px; flex-shrink: 0; }
+
+.diff-header-btn {
+  width: 22px; height: 22px; border-radius: 4px;
+  display: flex; align-items: center; justify-content: center;
+  color: var(--text-secondary); transition: background 0.12s;
+}
+.diff-header-btn:hover { background: var(--bg-hover); color: var(--text); }
+
+/* ── History detail header ── */
+.history-detail-header {
+  padding: var(--spacing);
+  border-bottom: 1px solid var(--border);
+  flex-shrink: 0;
+  background: var(--bg-subtle);
+}
+
+.history-detail-meta {
+  display: flex; align-items: center; gap: 10px; margin-bottom: 6px;
+}
+
+.history-detail-rev {
+  font-family: monospace; font-size: 12px; font-weight: 700;
+  color: var(--accent);
+  background: rgba(56,139,253,0.1); padding: 1px 6px; border-radius: 3px;
+}
+
+.history-detail-author { font-size: 12px; color: var(--text-secondary); }
+
+.history-detail-msg {
+  font-size: 13px; color: var(--text);
+  white-space: pre-wrap; line-height: 1.5;
+  max-height: 60px; overflow: hidden;
+}
+
+/* ── History path list ── */
+.history-paths {
+  flex-shrink: 0; max-height: 140px; overflow-y: auto;
+  border-bottom: 1px solid var(--border);
+}
+
+.history-path-item {
+  display: flex; align-items: center; gap: 8px;
+  padding: 4px var(--spacing); cursor: pointer;
+  font-size: 12px; font-family: 'Consolas', monospace;
+  transition: background 0.08s;
+}
+.history-path-item:hover { background: var(--bg-hover); }
+
+.history-path-action {
+  font-weight: 700; width: 14px; text-align: center; flex-shrink: 0;
+}
+.history-path-action[data-action='A'] { color: var(--color-added); }
+.history-path-action[data-action='M'] { color: var(--color-modified); }
+.history-path-action[data-action='D'] { color: var(--color-deleted); }
+.history-path-action[data-action='R'] { color: var(--color-conflicted); }
+.history-path-name { flex: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; color: var(--text-secondary); }
+
+/* ── Diff content ── */
+.diff-content {
+  flex: 1; overflow: auto;
+  font-family: 'Consolas', 'Cascadia Code', 'SF Mono', monospace;
+  font-size: 12px; line-height: 1.5;
+  background: var(--bg-canvas);
+}
+
+.diff-hunk-header {
+  padding: 2px var(--spacing);
+  color: var(--text-muted);
+  background: var(--diff-hunk-bg);
+  border-top: 1px solid var(--diff-hunk-border);
+  border-bottom: 1px solid var(--diff-hunk-border);
+  font-size: 11px; user-select: none;
+}
+
+.diff-line {
+  display: flex; align-items: stretch;
+  min-width: max-content;
+}
+.diff-line:hover { filter: brightness(1.08); }
+
+.diff-line--added   { background: var(--diff-add-bg); }
+.diff-line--removed { background: var(--diff-del-bg); }
+
+/* Checkmark gutter — GitHub Desktop shows ✓ for each changed line */
+.diff-gutter-check {
+  width: 24px; flex-shrink: 0;
+  display: flex; align-items: center; justify-content: center;
+  color: var(--text-muted); user-select: none;
+  border-right: 1px solid var(--border-muted);
+}
+.diff-line--added   .diff-gutter-check { color: var(--color-added); }
+.diff-line--removed .diff-gutter-check { color: var(--color-deleted); }
+
+.diff-gutter {
+  width: 44px; padding: 0 6px;
+  text-align: right; color: var(--text-muted);
+  user-select: none;
+  border-right: 1px solid var(--border-muted);
+  flex-shrink: 0; font-size: 11px;
+}
+
+.diff-sign {
+  width: 18px; padding: 0 4px;
+  color: var(--text-muted); user-select: none; flex-shrink: 0; text-align: center;
+}
+.diff-line--added   .diff-sign { color: var(--diff-add-line); }
+.diff-line--removed .diff-sign { color: var(--diff-del-line); }
+
+.diff-code {
+  padding: 0 8px; white-space: pre; color: var(--text);
+}
+.diff-line--added   .diff-code { color: var(--diff-add-line); }
+.diff-line--removed .diff-code { color: var(--diff-del-line); }
+
+.diff-no-changes {
+  padding: 40px; text-align: center;
+  color: var(--text-muted); font-family: inherit;
+}

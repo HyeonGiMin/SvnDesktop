@@ -52,8 +52,16 @@ export interface DiffLine {
   newLineNo?: number
 }
 
+export interface SvnInfo {
+  url: string
+  revision: number
+  author: string
+  lastChangedDate: string
+}
+
 // IPC channel names
 export const IPC = {
+  SVN_INFO: 'svn:info',
   REPOS_LIST: 'repos:list',
   REPOS_ADD: 'repos:add',
   REPOS_REMOVE: 'repos:remove',

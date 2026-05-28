@@ -8,6 +8,7 @@ const api = {
     remove: (id: string) => ipcRenderer.invoke(IPC.REPOS_REMOVE, id),
   },
   svn: {
+    info: (repoPath: string) => ipcRenderer.invoke(IPC.SVN_INFO, repoPath),
     status: (repoPath: string) => ipcRenderer.invoke(IPC.SVN_STATUS, repoPath),
     commit: (repoPath: string, message: string, paths: string[]) =>
       ipcRenderer.invoke(IPC.SVN_COMMIT, repoPath, message, paths),

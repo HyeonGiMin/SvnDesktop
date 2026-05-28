@@ -1,20 +1,75 @@
-import { app, BrowserWindow, shell } from 'electron'
+import { app, BrowserWindow, shell, Menu } from 'electron'
 import { join } from 'path'
 import { registerIpcHandlers } from './ipc'
 
+function buildMenu(): void {
+  const template: Electron.MenuItemConstructorOptions[] = [
+    {
+      label: 'File',
+      submenu: [
+        { label: 'Add Local Repository…', accelerator: 'CmdOrCtrl+O' },
+        { type: 'separator' },
+        { role: 'quit', label: 'Exit' },
+      ],
+    },
+    {
+      label: 'Edit',
+      submenu: [
+        { role: 'undo' },
+        { role: 'redo' },
+        { type: 'separator' },
+        { role: 'cut' },
+        { role: 'copy' },
+        { role: 'paste' },
+        { role: 'selectAll' },
+      ],
+    },
+    {
+      label: 'View',
+      submenu: [
+        { role: 'reload' },
+        { role: 'forceReload' },
+        { role: 'toggleDevTools' },
+        { type: 'separator' },
+        { role: 'resetZoom' },
+        { role: 'zoomIn' },
+        { role: 'zoomOut' },
+        { type: 'separator' },
+        { role: 'togglefullscreen' },
+      ],
+    },
+    {
+      label: 'Repository',
+      submenu: [
+        { label: 'Push' },
+        { label: 'Pull' },
+        { label: 'Fetch' },
+        { type: 'separator' },
+        { label: 'Repository Settings…' },
+      ],
+    },
+    {
+      label: 'Help',
+      submenu: [
+        {
+          label: 'SVN Desktop on GitHub',
+          click: () => shell.openExternal('https://github.com/HyeonGiMin/SvnDesktop'),
+        },
+        { type: 'separator' },
+        { role: 'about', label: 'About SVN Desktop' },
+      ],
+    },
+  ]
+  Menu.setApplicationMenu(Menu.buildFromTemplate(template))
+}
+
 function createWindow(): void {
   const win = new BrowserWindow({
-    width: 1200,
-    height: 760,
+    width: 1280,
+    height: 800,
     minWidth: 800,
     minHeight: 500,
     show: false,
-    titleBarStyle: 'hidden',
-    titleBarOverlay: {
-      color: '#1e1e2e',
-      symbolColor: '#cdd6f4',
-      height: 32,
-    },
     webPreferences: {
       preload: join(__dirname, '../preload/index.js'),
       sandbox: false,
@@ -36,6 +91,7 @@ function createWindow(): void {
 }
 
 app.whenReady().then(() => {
+  buildMenu()
   registerIpcHandlers()
   createWindow()
   app.on('activate', () => {
