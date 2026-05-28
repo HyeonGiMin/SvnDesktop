@@ -1,87 +1,98 @@
 # CLAUDE.md
 
-This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
+This file provides guidance to Claude Code when working with code in this repository.
 
 ## Project Overview
 
-**svnManager** is a Windows desktop application (`.exe`) that provides a GitHub Desktop-style GUI for SVN repositories. Key features:
-- Save and manage multiple SVN repository paths
-- Browse working copies per saved path
+**SVN Desktop** is a Windows desktop application built with Electron that provides a GitHub Desktop-style GUI for SVN repositories. Key features:
+- Save and manage multiple SVN working copy paths
+- Browse and stage changed files per repository
 - Commit changes with message input
-- View commit logs
-- View file diffs (before/after)
+- View commit history (log)
+- View unified diffs (before/after)
 
 ## Technology Stack
 
-- **Language**: C# (.NET 8+)
-- **UI Framework**: WPF (Windows Presentation Foundation) — chosen for modern Windows UI, MVVM support, and rich data binding
-- **SVN Integration**: `SharpSvn` NuGet package (managed SVN bindings for .NET) or `SVN CLI` process invocation as fallback
-- **Architecture Pattern**: MVVM (Model-View-ViewModel)
+- **Shell**: Electron 33 (main process)
+- **UI**: React 18 + TypeScript (renderer process)
+- **State**: Redux Toolkit (Zustand-style slices)
+- **Build**: electron-vite (Vite-based)
+- **SVN**: SVN CLI (`svn.exe`) via `child_process` — no native bindings
 
 ## Build & Run
 
 ```powershell
-# Restore dependencies
-dotnet restore
+# Install dependencies (first time)
+npm install
 
-# Build
-dotnet build
+# Dev mode (hot reload)
+npm run dev
 
-# Run
-dotnet run --project src/svnManager/svnManager.csproj
+# Build production
+npm run build
 
-# Build release exe
-dotnet publish -c Release -r win-x64 --self-contained true -p:PublishSingleFile=true
+# Package as .exe installer
+npm run package
 ```
 
 ## Project Structure
 
 ```
 svnManager/
+├── electron.vite.config.ts   # Build config for main/preload/renderer
+├── package.json
+├── tsconfig.json / tsconfig.node.json / tsconfig.web.json
 ├── src/
-│   └── svnManager/
-│       ├── svnManager.csproj
-│       ├── App.xaml / App.xaml.cs          # Application entry point
-│       ├── Models/
-│       │   ├── Repository.cs               # Saved SVN path model
-│       │   ├── SvnFileStatus.cs            # File status (modified/added/deleted)
-│       │   └── SvnLogEntry.cs              # Log entry model
-│       ├── ViewModels/
-│       │   ├── MainViewModel.cs            # Shell/navigation VM
-│       │   ├── RepositoryListViewModel.cs  # Sidebar: saved repos
-│       │   ├── ChangesViewModel.cs         # Changes tab (commit)
-│       │   ├── HistoryViewModel.cs         # Log/history tab
-│       │   └── DiffViewModel.cs            # Diff viewer VM
-│       ├── Views/
-│       │   ├── MainWindow.xaml             # Shell window with sidebar + content area
-│       │   ├── RepositoryListView.xaml     # Left panel: list of saved repos
-│       │   ├── ChangesView.xaml            # Changes + commit panel
-│       │   ├── HistoryView.xaml            # Log list view
-│       │   └── DiffView.xaml               # Unified/side-by-side diff
-│       ├── Services/
-│       │   ├── SvnService.cs               # All SVN operations (status, commit, log, diff)
-│       │   └── RepositoryStore.cs          # Persist saved repo paths (JSON to AppData)
-│       └── Converters/                     # WPF value converters (status → icon, etc.)
-└── CLAUDE.md
+│   ├── main/                 # Electron main process (Node.js)
+│   │   ├── index.ts          # BrowserWindow creation, app lifecycle
+│   │   ├── ipc.ts            # ipcMain.handle registrations
+│   │   └── svn/
+│   │       ├── SvnClient.ts  # All svn.exe calls + XML/diff parsers
+│   │       └── RepositoryStore.ts  # JSON persistence in %APPDATA%
+│   ├── preload/
+│   │   └── index.ts          # contextBridge → exposes window.api
+│   ├── renderer/
+│   │   ├── index.html
+│   │   └── src/
+│   │       ├── main.tsx      # React entry + Redux Provider
+│   │       ├── App.tsx       # Tab bar + layout shell
+│   │       ├── env.d.ts      # window.api type augmentation
+│   │       ├── store/        # Redux slices
+│   │       │   ├── index.ts
+│   │       │   ├── repositoriesSlice.ts
+│   │       │   ├── changesSlice.ts
+│   │       │   └── historySlice.ts
+│   │       ├── components/
+│   │       │   ├── Sidebar/   # Repository list + add/remove
+│   │       │   ├── Changes/   # File list + commit panel + diff
+│   │       │   ├── History/   # SVN log + revision detail
+│   │       │   └── Diff/      # Unified diff renderer
+│   │       └── styles/
+│   │           └── global.css
+│   └── shared/
+│       └── types.ts          # Shared interfaces + IPC channel names
+└── resources/
+    └── icon.ico              # App icon (add before packaging)
 ```
 
 ## Key Architecture Decisions
 
-### MVVM Wiring
-ViewModels use `CommunityToolkit.Mvvm` (source-generated `ObservableProperty`, `RelayCommand`). Views bind exclusively through DataContext — no code-behind logic.
+### IPC Flow
+```
+Renderer (React) → window.api.svn.* → preload contextBridge → ipcRenderer.invoke
+→ ipcMain.handle → SvnClient.ts (child_process svn.exe) → result back up
+```
 
-### SVN Service
-`SvnService` wraps either `SharpSvn` calls or spawns `svn.exe` subprocess commands. All methods are `async Task<T>` to keep the UI responsive. Prefer `SharpSvn` for structured data; fall back to CLI for operations not exposed in the binding.
+### SVN Integration
+`SvnClient.ts` spawns `svn` subprocesses with `--xml` flag where available. All methods are `async`. Parsers use regex against the XML stdout — no XML library dependency.
 
 ### Repository Persistence
-Saved repository paths are stored as JSON in `%APPDATA%\svnManager\repositories.json` via `RepositoryStore`. Loaded on startup, updated on add/remove.
+Saved paths are stored as JSON at `%APPDATA%\SVN Desktop\repositories.json` via `RepositoryStore.ts`. Loaded on startup via `repos:list` IPC.
 
-### Diff Display
-Diffs are rendered as syntax-highlighted text in a `RichTextBox` or `AvalonEdit` control. Removed lines shown in red, added in green — no external diff tool required.
+### Shared Types
+`src/shared/types.ts` is imported by both main and renderer — the IPC channel constants (`IPC.*`) live there to avoid string duplication.
 
-## NuGet Dependencies
+## Prerequisites
 
-- `SharpSvn` — SVN operations
-- `CommunityToolkit.Mvvm` — MVVM boilerplate reduction
-- `Newtonsoft.Json` or `System.Text.Json` — repository list persistence
-- `AvalonEdit` (optional) — syntax-highlighted diff/log viewer
+- Node.js 20+
+- SVN command-line tools installed and on `PATH` (`svn --version` should work)

@@ -1,11 +1,6 @@
-bin/
-obj/
-*.user
-.vs/
-*.suo
-*.userosscache
-*.sln.docstates
-packages/
-*.nupkg
+node_modules/
+out/
+dist/
 .DS_Store
 Thumbs.db
+*.local
