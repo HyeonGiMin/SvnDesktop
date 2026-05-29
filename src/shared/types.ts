@@ -38,6 +38,7 @@ export interface SvnLogEntry {
 export interface SvnDiff {
   filePath: string
   hunks: DiffHunk[]
+  isPlainView?: boolean
 }
 
 export interface DiffHunk {
@@ -72,6 +73,10 @@ export const IPC = {
   SVN_UPDATE: 'svn:update',
   SVN_REVERT: 'svn:revert',
   SVN_ADD: 'svn:add',
+  SVN_CHECKOUT: 'svn:checkout',
+  SVN_READ_FILE: 'svn:readFile',
+  DIALOG_BROWSE_FOLDER: 'dialog:browseFolder',
+  REPOS_SET_LAST_SELECTED: 'repos:setLastSelected',
   WINDOW_MINIMIZE: 'window:minimize',
   WINDOW_MAXIMIZE: 'window:maximize',
   WINDOW_CLOSE: 'window:close',

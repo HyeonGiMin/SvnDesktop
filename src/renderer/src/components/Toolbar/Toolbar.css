@@ -17,7 +17,7 @@
   min-width: 0;
 }
 
-.sidebar-section  { flex-shrink: 0; width: calc(var(--panel-w) + 1px); }
+.sidebar-section  { flex-shrink: 0; width: calc(var(--panel-w) + 1px); position: relative; }
 .branch-section   { flex: 1; min-width: 0; }
 .fetch-section    { flex-shrink: 0; width: 230px; }
 
@@ -79,10 +79,105 @@
 
 .chevron-icon { flex-shrink: 0; color: var(--text-toolbar-sub); }
 
+/* ── Filter row ── */
+.dropdown-filter-row {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 8px 8px 6px;
+  border-bottom: 1px solid var(--border);
+  background: var(--bg-overlay);
+}
+
+.dropdown-filter-input-wrap {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  background: var(--bg-canvas);
+  border: 1px solid var(--border);
+  border-radius: var(--border-radius);
+  padding: 4px 8px;
+  transition: border-color 0.15s;
+}
+.dropdown-filter-input-wrap:focus-within {
+  border-color: var(--accent);
+  box-shadow: 0 0 0 3px rgba(56, 139, 253, 0.15);
+}
+
+.filter-search-icon { color: var(--text-muted); flex-shrink: 0; }
+
+.dropdown-filter-input {
+  flex: 1;
+  background: transparent;
+  border: none;
+  outline: none;
+  color: var(--text);
+  font-size: 12px;
+  padding: 0;
+  min-width: 0;
+}
+.dropdown-filter-input::placeholder { color: var(--text-muted); }
+
+.dropdown-filter-clear {
+  display: flex; align-items: center; justify-content: center;
+  color: var(--text-muted); border-radius: 3px; padding: 1px;
+  flex-shrink: 0;
+}
+.dropdown-filter-clear:hover { color: var(--text); background: var(--bg-hover); }
+
+/* ── Add sub-menu ── */
+.add-menu-wrap { position: relative; flex-shrink: 0; }
+
+.dropdown-add-btn {
+  width: 26px; height: 26px;
+  border-radius: 5px;
+  display: flex; align-items: center; justify-content: center;
+  color: var(--text-secondary);
+  transition: background 0.15s, color 0.15s;
+}
+.dropdown-add-btn:hover,
+.dropdown-add-btn.open { background: var(--bg-hover); color: var(--text); }
+
+.add-submenu {
+  position: absolute;
+  top: calc(100% + 4px);
+  right: 0;
+  width: 220px;
+  background: var(--bg-overlay);
+  border: 1px solid var(--border);
+  border-radius: var(--border-radius);
+  box-shadow: 0 8px 24px rgba(0,0,0,0.5);
+  z-index: 300;
+  overflow: hidden;
+}
+
+.add-submenu-item {
+  display: block;
+  width: 100%;
+  text-align: left;
+  padding: 8px 12px;
+  font-size: 13px;
+  color: var(--text);
+  background: transparent;
+  border: none;
+  cursor: pointer;
+  transition: background 0.1s;
+}
+.add-submenu-item:hover { background: var(--bg-hover); }
+
+/* ── Dropdown overlay (GitHub Desktop faded backdrop) ── */
+.toolbar-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 100;
+  background: rgba(0, 0, 0, 0.5);
+}
+
 /* ── Dropdown ── */
 .toolbar-dropdown {
   position: absolute;
-  top: var(--toolbar-h);
+  top: 100%;
   left: 0;
   width: 300px;
   background: #1c2128;
@@ -90,42 +185,11 @@
   border-radius: var(--border-radius);
   box-shadow: 0 8px 24px rgba(0,0,0,0.5);
   z-index: 200;
-  overflow: hidden;
 }
 
-.repo-btn { position: relative; }
+.dropdown-list { overflow-y: auto; }
+
 .repo-dropdown { left: 0; }
-
-.dropdown-section-header {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  padding: 8px 12px 6px;
-  font-size: 11px;
-  font-weight: 600;
-  text-transform: uppercase;
-  letter-spacing: 0.05em;
-  color: var(--text-muted);
-  border-bottom: 1px solid var(--border);
-  background: var(--bg-overlay);
-}
-
-.dropdown-add-btn {
-  width: 20px; height: 20px;
-  border-radius: 4px;
-  display: flex; align-items: center; justify-content: center;
-  color: var(--text-secondary);
-  transition: background 0.15s;
-}
-.dropdown-add-btn:hover { background: var(--bg-hover); color: var(--text); }
-
-.dropdown-add-form {
-  padding: 8px;
-  display: flex; flex-direction: column; gap: 6px;
-  border-bottom: 1px solid var(--border);
-}
-.dropdown-add-form input { font-size: 12px; }
-.dropdown-add-form-actions { display: flex; gap: 6px; }
 
 .btn-primary {
   padding: 4px 12px; border-radius: 5px;

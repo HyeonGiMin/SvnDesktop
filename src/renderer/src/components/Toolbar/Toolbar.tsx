@@ -9,48 +9,94 @@ import {
 } from '../../store/repositoriesSlice'
 import { fetchStatus } from '../../store/changesSlice'
 import { fetchLog } from '../../store/historySlice'
+import { AddRepositoryDialog } from './AddRepositoryDialog'
+import { CloneRepositoryDialog } from './CloneRepositoryDialog'
 import './Toolbar.css'
+
+type Dialog = 'add' | 'clone' | null
 
 export function Toolbar(): JSX.Element {
   const dispatch = useDispatch<AppDispatch>()
   const { list, selected, svnInfo } = useSelector((s: RootState) => s.repositories)
-  const [repoOpen, setRepoOpen] = useState(false)
-  const [adding, setAdding] = useState(false)
-  const [newName, setNewName] = useState('')
-  const [newPath, setNewPath] = useState('')
-  const [updating, setUpdating] = useState(false)
-  const repoRef = useRef<HTMLDivElement>(null)
 
-  useEffect(() => { dispatch(fetchRepositories()) }, [dispatch])
+  const [repoOpen, setRepoOpen] = useState(false)
+  const [filterText, setFilterText] = useState('')
+  const [addMenuOpen, setAddMenuOpen] = useState(false)
+  const [dialog, setDialog] = useState<Dialog>(null)
+  const [updating, setUpdating] = useState(false)
+
+  const repoRef = useRef<HTMLDivElement>(null)
+  const filterRef = useRef<HTMLInputElement>(null)
+
+  useEffect(() => {
+    dispatch(fetchRepositories()).then((action) => {
+      if (!fetchRepositories.fulfilled.match(action)) return
+      const { repos, lastSelectedId } = action.payload
+      if (!lastSelectedId) return
+      const repo = repos.find(r => r.id === lastSelectedId)
+      if (!repo) return
+      dispatch(selectRepository(repo))
+      dispatch(fetchStatus(repo.path))
+      dispatch(fetchLog({ repoPath: repo.path }))
+    })
+  }, [dispatch])
 
   useEffect(() => {
     function close(e: MouseEvent): void {
       if (repoRef.current && !repoRef.current.contains(e.target as Node)) {
         setRepoOpen(false)
-        setAdding(false)
+        setFilterText('')
+        setAddMenuOpen(false)
       }
     }
     document.addEventListener('mousedown', close)
     return () => document.removeEventListener('mousedown', close)
   }, [])
 
+  useEffect(() => {
+    if (repoOpen) setTimeout(() => filterRef.current?.focus(), 0)
+  }, [repoOpen])
+
+  const filteredList = filterText.trim()
+    ? list.filter(r =>
+        r.name.toLowerCase().includes(filterText.toLowerCase()) ||
+        r.path.toLowerCase().includes(filterText.toLowerCase())
+      )
+    : list
+
+  function closeDropdown(): void {
+    setRepoOpen(false)
+    setFilterText('')
+    setAddMenuOpen(false)
+  }
+
   function handleSelect(repo: (typeof list)[0]): void {
     dispatch(selectRepository(repo))
     dispatch(fetchStatus(repo.path))
     dispatch(fetchLog({ repoPath: repo.path }))
-    setRepoOpen(false)
+    window.api.repos.setLastSelected(repo.id)
+    closeDropdown()
   }
 
-  function handleAdd(): void {
-    if (!newPath.trim()) return
-    const name = newName.trim() || newPath.split(/[\\/]/).pop() || newPath
-    dispatch(addRepository({ name, path: newPath.trim() })).then((action) => {
+  function handleAdd(name: string, path: string): void {
+    dispatch(addRepository({ name, path })).then((action) => {
       if (addRepository.fulfilled.match(action)) {
         dispatch(fetchStatus(action.payload.path))
         dispatch(fetchLog({ repoPath: action.payload.path }))
       }
     })
-    setAdding(false); setNewName(''); setNewPath(''); setRepoOpen(false)
+    setDialog(null)
+  }
+
+  async function handleClone(url: string, localPath: string, name: string): Promise<void> {
+    await window.api.svn.checkout(url, localPath)
+    dispatch(addRepository({ name, path: localPath })).then((action) => {
+      if (addRepository.fulfilled.match(action)) {
+        dispatch(fetchStatus(action.payload.path))
+        dispatch(fetchLog({ repoPath: action.payload.path }))
+      }
+    })
+    setDialog(null)
   }
 
   async function handleUpdate(): Promise<void> {
@@ -63,107 +109,141 @@ export function Toolbar(): JSX.Element {
   }
 
   const revLabel = svnInfo ? `r${svnInfo.revision}` : '—'
-  const urlLabel = svnInfo
-    ? svnInfo.url.split('/').slice(-2).join('/')
-    : 'No working copy'
+  const urlLabel = svnInfo ? svnInfo.url.split('/').slice(-2).join('/') : 'No working copy'
 
   return (
-    <div className="toolbar">
-      {/* ── Section 1: Current repository ── */}
-      <div className="toolbar-section sidebar-section" ref={repoRef}>
-        <button
-          className={`toolbar-btn repo-btn ${repoOpen ? 'open' : ''}`}
-          onClick={() => setRepoOpen(v => !v)}
-        >
-          <RepoIcon />
-          <div className="toolbar-btn-text">
-            <span className="toolbar-btn-label">Current repository</span>
-            <span className="toolbar-btn-title">{selected?.name ?? 'No Repository'}</span>
-          </div>
-          <Chevron />
-        </button>
-
-        {repoOpen && (
-          <div className="toolbar-dropdown repo-dropdown">
-            <div className="dropdown-section-header">
-              <span>Repositories</span>
-              <button className="dropdown-add-btn" onClick={() => setAdding(v => !v)}>
-                <PlusIcon />
-              </button>
+    <>
+      <div className="toolbar">
+        {/* ── Section 1: Current repository ── */}
+        <div className="toolbar-section sidebar-section" ref={repoRef}>
+          <button
+            className={`toolbar-btn repo-btn ${repoOpen ? 'open' : ''}`}
+            onClick={() => { setRepoOpen(v => !v); setAddMenuOpen(false) }}
+          >
+            <RepoIcon />
+            <div className="toolbar-btn-text">
+              <span className="toolbar-btn-label">Current repository</span>
+              <span className="toolbar-btn-title">{selected?.name ?? 'No Repository'}</span>
             </div>
+            <Chevron open={repoOpen} />
+          </button>
 
-            {adding && (
-              <div className="dropdown-add-form">
-                <input autoFocus placeholder="Name (optional)" value={newName}
-                  onChange={e => setNewName(e.target.value)} />
-                <input placeholder="Local path  e.g. C:\repos\project" value={newPath}
-                  onChange={e => setNewPath(e.target.value)}
-                  onKeyDown={e => e.key === 'Enter' && handleAdd()} />
-                <div className="dropdown-add-form-actions">
-                  <button className="btn-primary" onClick={handleAdd}>Add</button>
-                  <button className="btn-secondary" onClick={() => setAdding(false)}>Cancel</button>
+          {repoOpen && <div className="toolbar-overlay" onClick={closeDropdown} />}
+
+          {repoOpen && (
+            <div className="toolbar-dropdown repo-dropdown">
+              {/* Filter row */}
+              <div className="dropdown-filter-row">
+                <div className="dropdown-filter-input-wrap">
+                  <SearchIcon />
+                  <input
+                    ref={filterRef}
+                    className="dropdown-filter-input"
+                    placeholder="Filter"
+                    value={filterText}
+                    onChange={e => setFilterText(e.target.value)}
+                    onKeyDown={e => e.key === 'Escape' && closeDropdown()}
+                  />
+                  {filterText && (
+                    <button className="dropdown-filter-clear" onClick={() => setFilterText('')}>
+                      <ClearIcon />
+                    </button>
+                  )}
+                </div>
+
+                {/* Add button with sub-menu */}
+                <div className="add-menu-wrap">
+                  <button
+                    className={`dropdown-add-btn ${addMenuOpen ? 'open' : ''}`}
+                    onClick={e => { e.stopPropagation(); setAddMenuOpen(v => !v) }}
+                    title="Add repository"
+                  >
+                    <PlusIcon />
+                  </button>
+                  {addMenuOpen && (
+                    <div className="add-submenu">
+                      <button className="add-submenu-item" onClick={() => { setDialog('add'); closeDropdown() }}>
+                        Add existing repository…
+                      </button>
+                      <button className="add-submenu-item" onClick={() => { setDialog('clone'); closeDropdown() }}>
+                        Clone repository…
+                      </button>
+                    </div>
+                  )}
                 </div>
               </div>
-            )}
 
-            <ul className="dropdown-list">
-              {list.map(repo => (
-                <li key={repo.id}
-                  className={`dropdown-item ${selected?.id === repo.id ? 'active' : ''}`}
-                  onClick={() => handleSelect(repo)}
-                >
-                  <span className="dropdown-item-check">
-                    {selected?.id === repo.id && <CheckIcon />}
-                  </span>
-                  <div className="dropdown-item-info">
-                    <span className="dropdown-item-name">{repo.name}</span>
-                    <span className="dropdown-item-path">{repo.path}</span>
-                  </div>
-                  <button className="dropdown-item-remove"
-                    onClick={e => { e.stopPropagation(); dispatch(removeRepository(repo.id)) }}
-                  >×</button>
-                </li>
-              ))}
-              {list.length === 0 && !adding && (
-                <li className="dropdown-empty">No repositories yet</li>
+              {/* Repository list */}
+              <ul className="dropdown-list">
+                {filteredList.map(repo => (
+                  <li
+                    key={repo.id}
+                    className={`dropdown-item ${selected?.id === repo.id ? 'active' : ''}`}
+                    onClick={() => handleSelect(repo)}
+                  >
+                    <span className="dropdown-item-check">
+                      {selected?.id === repo.id && <CheckIcon />}
+                    </span>
+                    <div className="dropdown-item-info">
+                      <span className="dropdown-item-name">{repo.name}</span>
+                      <span className="dropdown-item-path">{repo.path}</span>
+                    </div>
+                    <button
+                      className="dropdown-item-remove"
+                      onClick={e => { e.stopPropagation(); dispatch(removeRepository(repo.id)) }}
+                    >×</button>
+                  </li>
+                ))}
+                {filteredList.length === 0 && (
+                  <li className="dropdown-empty">
+                    {filterText ? `No repositories matching "${filterText}"` : 'No repositories yet'}
+                  </li>
+                )}
+              </ul>
+            </div>
+          )}
+        </div>
+
+        <div className="toolbar-divider" />
+
+        {/* ── Section 2: Working copy ── */}
+        <div className="toolbar-section branch-section">
+          <button className="toolbar-btn branch-btn" disabled={!selected}>
+            <SvnBranchIcon />
+            <div className="toolbar-btn-text">
+              <span className="toolbar-btn-label">Working copy</span>
+              <span className="toolbar-btn-title">{selected ? revLabel : '—'}</span>
+            </div>
+          </button>
+        </div>
+
+        <div className="toolbar-divider" />
+
+        {/* ── Section 3: SVN Update ── */}
+        <div className="toolbar-section fetch-section">
+          <button
+            className={`toolbar-btn fetch-btn ${updating ? 'updating' : ''}`}
+            onClick={handleUpdate}
+            disabled={!selected || updating}
+          >
+            <UpdateIcon spin={updating} />
+            <div className="toolbar-btn-text">
+              <span className="toolbar-btn-label">{updating ? 'Updating…' : 'SVN Update'}</span>
+              {svnInfo && !updating && (
+                <span className="toolbar-btn-label">{urlLabel}</span>
               )}
-            </ul>
-          </div>
-        )}
+            </div>
+          </button>
+        </div>
       </div>
 
-      <div className="toolbar-divider" />
-
-      {/* ── Section 2: Working copy (SVN equivalent of "Current branch") ── */}
-      <div className="toolbar-section branch-section">
-        <button className="toolbar-btn branch-btn" disabled={!selected}>
-          <SvnBranchIcon />
-          <div className="toolbar-btn-text">
-            <span className="toolbar-btn-label">Working copy</span>
-            <span className="toolbar-btn-title">{selected ? revLabel : '—'}</span>
-          </div>
-        </button>
-      </div>
-
-      <div className="toolbar-divider" />
-
-      {/* ── Section 3: SVN Update (equivalent of Fetch/Push) ── */}
-      <div className="toolbar-section fetch-section">
-        <button
-          className={`toolbar-btn fetch-btn ${updating ? 'updating' : ''}`}
-          onClick={handleUpdate}
-          disabled={!selected || updating}
-        >
-          <UpdateIcon spin={updating} />
-          <div className="toolbar-btn-text">
-            <span className="toolbar-btn-label">{updating ? 'Updating…' : 'SVN Update'}</span>
-            {svnInfo && !updating && (
-              <span className="toolbar-btn-label">{urlLabel}</span>
-            )}
-          </div>
-        </button>
-      </div>
-    </div>
+      {dialog === 'add' && (
+        <AddRepositoryDialog onAdd={handleAdd} onDismiss={() => setDialog(null)} />
+      )}
+      {dialog === 'clone' && (
+        <CloneRepositoryDialog onClone={handleClone} onDismiss={() => setDialog(null)} />
+      )}
+    </>
   )
 }
 
@@ -192,9 +272,13 @@ function UpdateIcon({ spin }: { spin: boolean }): JSX.Element {
   )
 }
 
-function Chevron(): JSX.Element {
+function Chevron({ open }: { open: boolean }): JSX.Element {
   return (
-    <svg className="chevron-icon" viewBox="0 0 16 16" width="12" height="12" aria-hidden>
+    <svg
+      className="chevron-icon"
+      style={{ transform: open ? 'rotate(180deg)' : undefined, transition: 'transform 0.15s' }}
+      viewBox="0 0 16 16" width="12" height="12" aria-hidden
+    >
       <path fill="currentColor" d="M4.427 7.427l3.396 3.396a.25.25 0 00.354 0l3.396-3.396A.25.25 0 0011.396 7H4.604a.25.25 0 00-.177.427z" />
     </svg>
   )
@@ -212,6 +296,22 @@ function CheckIcon(): JSX.Element {
   return (
     <svg viewBox="0 0 16 16" width="12" height="12" aria-hidden>
       <path fill="currentColor" d="M13.78 4.22a.75.75 0 010 1.06l-7.25 7.25a.75.75 0 01-1.06 0L2.22 9.28a.75.75 0 011.06-1.06L6 10.94l6.72-6.72a.75.75 0 011.06 0z" />
+    </svg>
+  )
+}
+
+function SearchIcon(): JSX.Element {
+  return (
+    <svg className="filter-search-icon" viewBox="0 0 16 16" width="14" height="14" aria-hidden>
+      <path fill="currentColor" d="M10.68 11.74a6 6 0 01-7.922-8.982 6 6 0 018.982 7.922l3.04 3.04a.749.749 0 11-1.06 1.06l-3.04-3.04zM11.5 7a4.499 4.499 0 11-8.997 0A4.499 4.499 0 0111.5 7z" />
+    </svg>
+  )
+}
+
+function ClearIcon(): JSX.Element {
+  return (
+    <svg viewBox="0 0 16 16" width="12" height="12" aria-hidden>
+      <path fill="currentColor" d="M3.72 3.72a.75.75 0 011.06 0L8 6.94l3.22-3.22a.749.749 0 111.06 1.06L9.06 8l3.22 3.22a.749.749 0 11-1.06 1.06L8 9.06l-3.22 3.22a.749.749 0 01-1.06-1.06L6.94 8 3.72 4.78a.75.75 0 010-1.06z" />
     </svg>
   )
 }

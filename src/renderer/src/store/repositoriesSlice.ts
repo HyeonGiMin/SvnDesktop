@@ -52,7 +52,7 @@ const repositoriesSlice = createSlice({
       })
       .addCase(fetchRepositories.fulfilled, (state, action) => {
         state.loading = false
-        state.list = action.payload
+        state.list = action.payload.repos
       })
       .addCase(fetchRepositories.rejected, (state, action) => {
         state.loading = false

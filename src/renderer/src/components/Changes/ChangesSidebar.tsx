@@ -4,7 +4,6 @@ import { RootState, AppDispatch } from '../../store'
 import {
   togglePath, setCheckedPaths, setCommitMessage,
   commitChanges, revertFiles, fetchDiff, fetchStatus,
-  setSummary, setDescription,
 } from '../../store/changesSlice'
 import './ChangesSidebar.css'
 
@@ -25,7 +24,7 @@ const STATUS_BG: Record<string, string> = {
 
 export function ChangesSidebar(): JSX.Element {
   const dispatch = useDispatch<AppDispatch>()
-  const { files, checkedPaths, summary, description, activeDiff, loading, committing, error } =
+  const { files, checkedPaths, commitMessage, activeDiff, loading, committing, error } =
     useSelector((s: RootState) => s.changes)
   const repoPath = useSelector((s: RootState) => s.repositories.selected?.path ?? '')
   const [filter, setFilter] = useState('')
@@ -35,7 +34,7 @@ export function ChangesSidebar(): JSX.Element {
     : files
 
   const allChecked = filtered.length > 0 && filtered.every(f => checkedPaths.includes(f.path))
-  const canCommit = checkedPaths.length > 0 && summary.trim().length > 0 && !committing
+  const canCommit = checkedPaths.length > 0 && commitMessage.trim().length > 0 && !committing
 
   function handleSelectAll(): void {
     if (allChecked) dispatch(setCheckedPaths([]))
@@ -43,15 +42,15 @@ export function ChangesSidebar(): JSX.Element {
   }
 
   function handleFileClick(path: string, status: string): void {
-    if (status !== 'deleted') {
-      dispatch(fetchDiff({ repoPath, filePath: path }))
+    const noDiff = new Set(['missing', 'ignored'])
+    if (!noDiff.has(status)) {
+      dispatch(fetchDiff({ repoPath, filePath: path, status }))
     }
   }
 
   function handleCommit(): void {
     if (!canCommit) return
-    const message = description.trim() ? `${summary}\n\n${description}` : summary
-    dispatch(commitChanges({ repoPath, message, paths: checkedPaths })).then(action => {
+    dispatch(commitChanges({ repoPath, message: commitMessage, paths: checkedPaths })).then(action => {
       if (commitChanges.fulfilled.match(action)) dispatch(fetchStatus(repoPath))
     })
   }
@@ -120,42 +119,23 @@ export function ChangesSidebar(): JSX.Element {
 
       {/* Commit area */}
       <div className="commit-area">
-        <div className="commit-summary-row">
-          <div className="commit-avatar" aria-hidden>
-            <AvatarIcon />
-          </div>
-          <input
-            className="commit-summary"
-            placeholder="Summary (required)"
-            value={summary}
-            onChange={e => dispatch(setSummary(e.target.value))}
-            maxLength={72}
-          />
-        </div>
         <textarea
-          className="commit-description"
-          placeholder="Description"
-          value={description}
-          onChange={e => dispatch(setDescription(e.target.value))}
-          rows={3}
+          className="commit-message"
+          placeholder="Commit message (required)"
+          value={commitMessage}
+          onChange={e => dispatch(setCommitMessage(e.target.value))}
+          rows={4}
         />
-        <div className="commit-footer">
-          <div className="commit-actions-left">
-            <button className="commit-action-btn" title="Add co-author">
-              <CoAuthorIcon />
-            </button>
-          </div>
-          <button
-            className="commit-btn"
-            disabled={!canCommit}
-            onClick={handleCommit}
-          >
-            {committing
-              ? 'Committing…'
-              : `Commit${checkedPaths.length > 0 ? ` ${checkedPaths.length} file${checkedPaths.length !== 1 ? 's' : ''}` : ''} to SVN`
-            }
-          </button>
-        </div>
+        <button
+          className="commit-btn"
+          disabled={!canCommit}
+          onClick={handleCommit}
+        >
+          {committing
+            ? 'Committing…'
+            : `Commit${checkedPaths.length > 0 ? ` ${checkedPaths.length} file${checkedPaths.length !== 1 ? 's' : ''}` : ''} to SVN`
+          }
+        </button>
       </div>
     </div>
   )
@@ -165,22 +145,6 @@ function FilterIcon(): JSX.Element {
   return (
     <svg viewBox="0 0 16 16" width="14" height="14" aria-hidden>
       <path fill="currentColor" d="M.75 3h14.5a.75.75 0 010 1.5H.75A.75.75 0 010 3.75.75.75 0 01.75 3zm2 5h10.5a.75.75 0 010 1.5H2.75a.75.75 0 010-1.5zm3 5h4.5a.75.75 0 010 1.5h-4.5a.75.75 0 010-1.5z" />
-    </svg>
-  )
-}
-
-function AvatarIcon(): JSX.Element {
-  return (
-    <svg viewBox="0 0 16 16" width="16" height="16" aria-hidden>
-      <path fill="currentColor" d="M10.561 8.073a6.005 6.005 0 013.432 5.142.75.75 0 11-1.498.07 4.5 4.5 0 00-8.99 0 .75.75 0 01-1.498-.07 6.004 6.004 0 013.431-5.142 3.999 3.999 0 116.123 0zM10.5 5a2.5 2.5 0 11-5 0 2.5 2.5 0 015 0z" />
-    </svg>
-  )
-}
-
-function CoAuthorIcon(): JSX.Element {
-  return (
-    <svg viewBox="0 0 16 16" width="14" height="14" aria-hidden>
-      <path fill="currentColor" d="M2 5.5a3.5 3.5 0 115.898 2.549 5.508 5.508 0 013.034 4.084.75.75 0 11-1.482.235 4.001 4.001 0 00-7.9 0 .75.75 0 01-1.482-.236A5.507 5.507 0 013.102 8.05 3.493 3.493 0 012 5.5zM11 4a.75.75 0 100 1.5 1.5 1.5 0 01.666 2.844.75.75 0 00-.416.672v.352a.75.75 0 00.574.73c1.2.289 2.162 1.2 2.522 2.372a.75.75 0 101.434-.44 5.01 5.01 0 00-2.56-3.012A3 3 0 0011 4z" />
     </svg>
   )
 }

@@ -1,12 +1,20 @@
 import { exec } from 'child_process'
 import { promisify } from 'util'
+import fs from 'fs'
 import { SvnFileStatus, SvnLogEntry, SvnDiff, SvnInfo, DiffHunk, DiffLine } from '../../shared/types'
 
 const execAsync = promisify(exec)
 
 async function run(args: string, cwd: string): Promise<string> {
-  const { stdout } = await execAsync(`svn ${args}`, { cwd, windowsHide: true })
-  return stdout
+  try {
+    const { stdout } = await execAsync(`svn --non-interactive ${args}`, { cwd, windowsHide: true })
+    return stdout
+  } catch (err: unknown) {
+    const msg = (err as { stderr?: string; message?: string }).stderr
+      || (err as { message?: string }).message
+      || 'SVN command failed'
+    throw new Error(msg.trim())
+  }
 }
 
 export async function getStatus(repoPath: string): Promise<SvnFileStatus[]> {
@@ -30,9 +38,36 @@ export async function getLog(repoPath: string, limit = 50): Promise<SvnLogEntry[
   return parseLogXml(output)
 }
 
-export async function getDiff(repoPath: string, filePath: string): Promise<SvnDiff> {
-  const output = await run(`diff "${filePath}"`, repoPath)
-  return parseDiff(filePath, output)
+export async function getDiff(repoPath: string, filePath: string, ignoreWhitespace = false): Promise<SvnDiff> {
+  try {
+    const wsFlag = ignoreWhitespace ? '-x -w ' : ''
+    const output = await run(`diff ${wsFlag}"${filePath}"`, repoPath)
+    if (output.trim()) return parseDiff(filePath, output)
+    return readFileAsDiff(filePath)
+  } catch {
+    return readFileAsDiff(filePath)
+  }
+}
+
+export function readFileAsDiff(filePath: string): SvnDiff {
+  try {
+    const content = fs.readFileSync(filePath, 'utf-8')
+    const lines = content.split('\n')
+    if (lines[lines.length - 1] === '') lines.pop()
+    const diffLines: DiffLine[] = lines.map((text, i) => ({
+      type: 'context' as const,
+      content: text,
+      oldLineNo: i + 1,
+      newLineNo: i + 1,
+    }))
+    return {
+      filePath,
+      isPlainView: true,
+      hunks: [{ header: '', lines: diffLines }],
+    }
+  } catch {
+    return { filePath, isPlainView: true, hunks: [] }
+  }
 }
 
 export async function getInfo(repoPath: string): Promise<SvnInfo> {
@@ -52,6 +87,17 @@ export async function revert(repoPath: string, paths: string[]): Promise<void> {
 export async function addUnversioned(repoPath: string, paths: string[]): Promise<void> {
   const escaped = paths.map((p) => `"${p}"`).join(' ')
   await run(`add ${escaped}`, repoPath)
+}
+
+export async function checkout(url: string, localPath: string): Promise<void> {
+  try {
+    await execAsync(`svn --non-interactive checkout "${url}" "${localPath}"`, { windowsHide: true })
+  } catch (err: unknown) {
+    const msg = (err as { stderr?: string; message?: string }).stderr
+      || (err as { message?: string }).message
+      || 'SVN checkout failed'
+    throw new Error(msg.trim())
+  }
 }
 
 // ── XML parsers ──────────────────────────────────────────────────────────────

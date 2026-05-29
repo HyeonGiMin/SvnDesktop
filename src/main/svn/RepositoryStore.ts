@@ -5,16 +5,39 @@ import { Repository } from '../../shared/types'
 
 const storePath = join(app.getPath('userData'), 'repositories.json')
 
-export function loadRepositories(): Repository[] {
-  if (!existsSync(storePath)) return []
+interface Store {
+  repos: Repository[]
+  lastSelectedId: string | null
+}
+
+function loadStore(): Store {
+  if (!existsSync(storePath)) return { repos: [], lastSelectedId: null }
   try {
-    return JSON.parse(readFileSync(storePath, 'utf-8'))
+    const parsed = JSON.parse(readFileSync(storePath, 'utf-8'))
+    if (Array.isArray(parsed)) return { repos: parsed, lastSelectedId: null }
+    return parsed
   } catch {
-    return []
+    return { repos: [], lastSelectedId: null }
   }
 }
 
-export function saveRepositories(repos: Repository[]): void {
+function saveStore(store: Store): void {
   mkdirSync(join(storePath, '..'), { recursive: true })
-  writeFileSync(storePath, JSON.stringify(repos, null, 2), 'utf-8')
+  writeFileSync(storePath, JSON.stringify(store, null, 2), 'utf-8')
+}
+
+export function loadRepositories(): Repository[] {
+  return loadStore().repos
+}
+
+export function saveRepositories(repos: Repository[]): void {
+  saveStore({ ...loadStore(), repos })
+}
+
+export function loadLastSelectedId(): string | null {
+  return loadStore().lastSelectedId
+}
+
+export function saveLastSelectedId(id: string | null): void {
+  saveStore({ ...loadStore(), lastSelectedId: id })
 }

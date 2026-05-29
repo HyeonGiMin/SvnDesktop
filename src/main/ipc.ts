@@ -1,7 +1,7 @@
-import { ipcMain, BrowserWindow, Menu, shell } from 'electron'
+import { ipcMain, BrowserWindow, Menu, shell, dialog } from 'electron'
 import { IPC, Repository } from '../shared/types'
 import * as svn from './svn/SvnClient'
-import { loadRepositories, saveRepositories } from './svn/RepositoryStore'
+import { loadRepositories, saveRepositories, loadLastSelectedId, saveLastSelectedId } from './svn/RepositoryStore'
 
 function randomId(): string {
   return Math.random().toString(36).slice(2) + Date.now().toString(36)
@@ -59,7 +59,10 @@ export function registerIpcHandlers(win: BrowserWindow): void {
   })
 
   // ── Repository persistence ─────────────────────────────────────────────────
-  ipcMain.handle(IPC.REPOS_LIST, () => loadRepositories())
+  ipcMain.handle(IPC.REPOS_LIST, () => ({
+    repos: loadRepositories(),
+    lastSelectedId: loadLastSelectedId(),
+  }))
 
   ipcMain.handle(IPC.REPOS_ADD, (_e, name: string, path: string) => {
     const repos = loadRepositories()
@@ -75,6 +78,9 @@ export function registerIpcHandlers(win: BrowserWindow): void {
     const repos = loadRepositories().filter((r) => r.id !== id)
     saveRepositories(repos)
   })
+  ipcMain.handle(IPC.REPOS_SET_LAST_SELECTED, (_e, id: string | null) => {
+    saveLastSelectedId(id)
+  })
 
   // ── SVN operations ─────────────────────────────────────────────────────────
   ipcMain.handle(IPC.SVN_INFO, (_e, repoPath: string) => svn.getInfo(repoPath))
@@ -87,8 +93,8 @@ export function registerIpcHandlers(win: BrowserWindow): void {
   ipcMain.handle(IPC.SVN_LOG, (_e, repoPath: string, limit?: number) =>
     svn.getLog(repoPath, limit)
   )
-  ipcMain.handle(IPC.SVN_DIFF, (_e, repoPath: string, filePath: string) =>
-    svn.getDiff(repoPath, filePath)
+  ipcMain.handle(IPC.SVN_DIFF, (_e, repoPath: string, filePath: string, ignoreWhitespace?: boolean) =>
+    svn.getDiff(repoPath, filePath, ignoreWhitespace)
   )
   ipcMain.handle(IPC.SVN_UPDATE, (_e, repoPath: string) => svn.update(repoPath))
   ipcMain.handle(IPC.SVN_REVERT, (_e, repoPath: string, paths: string[]) =>
@@ -97,4 +103,17 @@ export function registerIpcHandlers(win: BrowserWindow): void {
   ipcMain.handle(IPC.SVN_ADD, (_e, repoPath: string, paths: string[]) =>
     svn.addUnversioned(repoPath, paths)
   )
+  ipcMain.handle(IPC.SVN_READ_FILE, (_e, filePath: string) =>
+    svn.readFileAsDiff(filePath)
+  )
+  ipcMain.handle(IPC.SVN_CHECKOUT, (_e, url: string, localPath: string) =>
+    svn.checkout(url, localPath)
+  )
+  ipcMain.handle(IPC.DIALOG_BROWSE_FOLDER, async (_e, defaultPath?: string) => {
+    const result = await dialog.showOpenDialog(win, {
+      defaultPath,
+      properties: ['openDirectory', 'createDirectory'],
+    })
+    return result.canceled ? null : result.filePaths[0]
+  })
 }

@@ -5,9 +5,8 @@ interface ChangesState {
   files: SvnFileStatus[]
   checkedPaths: string[]
   commitMessage: string
-  summary: string
-  description: string
   activeDiff: SvnDiff | null
+  ignoreWhitespace: boolean
   loading: boolean
   committing: boolean
   error: string | null
@@ -17,9 +16,8 @@ const initialState: ChangesState = {
   files: [],
   checkedPaths: [],
   commitMessage: '',
-  summary: '',
-  description: '',
   activeDiff: null,
+  ignoreWhitespace: false,
   loading: false,
   committing: false,
   error: null,
@@ -31,14 +29,30 @@ export const fetchStatus = createAsyncThunk('changes/fetchStatus', (repoPath: st
 
 export const fetchDiff = createAsyncThunk(
   'changes/fetchDiff',
-  ({ repoPath, filePath }: { repoPath: string; filePath: string }) =>
-    window.api.svn.diff(repoPath, filePath)
+  ({ repoPath, filePath, status }: { repoPath: string; filePath: string; status?: string }, { getState }) => {
+    if (status === 'unversioned') {
+      return window.api.svn.readFile(filePath)
+    }
+    const state = getState() as { changes: ChangesState }
+    return window.api.svn.diff(repoPath, filePath, state.changes.ignoreWhitespace)
+  }
 )
 
 export const commitChanges = createAsyncThunk(
   'changes/commit',
-  ({ repoPath, message, paths }: { repoPath: string; message: string; paths: string[] }) =>
-    window.api.svn.commit(repoPath, message, paths)
+  async (
+    { repoPath, message, paths }: { repoPath: string; message: string; paths: string[] },
+    { getState }
+  ) => {
+    const state = getState() as { changes: ChangesState }
+    const unversioned = paths.filter(
+      p => state.changes.files.find(f => f.path === p)?.status === 'unversioned'
+    )
+    if (unversioned.length > 0) {
+      await window.api.svn.add(repoPath, unversioned)
+    }
+    return window.api.svn.commit(repoPath, message, paths)
+  }
 )
 
 export const revertFiles = createAsyncThunk(
@@ -65,11 +79,8 @@ const changesSlice = createSlice({
     setCommitMessage(state, action: PayloadAction<string>) {
       state.commitMessage = action.payload
     },
-    setSummary(state, action: PayloadAction<string>) {
-      state.summary = action.payload
-    },
-    setDescription(state, action: PayloadAction<string>) {
-      state.description = action.payload
+    setIgnoreWhitespace(state, action: PayloadAction<boolean>) {
+      state.ignoreWhitespace = action.payload
     },
     clearDiff(state) {
       state.activeDiff = null
@@ -86,7 +97,7 @@ const changesSlice = createSlice({
         state.files = action.payload
         // auto-check all versioned files
         state.checkedPaths = action.payload
-          .filter((f) => f.status !== 'unversioned' && f.status !== 'ignored')
+          .filter((f) => f.status !== 'ignored')
           .map((f) => f.path)
       })
       .addCase(fetchStatus.rejected, (state, action) => {
@@ -95,6 +106,9 @@ const changesSlice = createSlice({
       })
       .addCase(fetchDiff.fulfilled, (state, action) => {
         state.activeDiff = action.payload
+      })
+      .addCase(fetchDiff.rejected, (state) => {
+        state.activeDiff = null
       })
       .addCase(commitChanges.pending, (state) => {
         state.committing = true
@@ -105,8 +119,6 @@ const changesSlice = createSlice({
         state.files = []
         state.checkedPaths = []
         state.commitMessage = ''
-        state.summary = ''
-        state.description = ''
         state.activeDiff = null
       })
       .addCase(commitChanges.rejected, (state, action) => {
@@ -121,5 +133,5 @@ const changesSlice = createSlice({
   },
 })
 
-export const { setCheckedPaths, togglePath, setCommitMessage, setSummary, setDescription, clearDiff } = changesSlice.actions
+export const { setCheckedPaths, togglePath, setCommitMessage, setIgnoreWhitespace, clearDiff } = changesSlice.actions
 export default changesSlice.reducer

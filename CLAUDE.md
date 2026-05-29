@@ -92,6 +92,16 @@ Saved paths are stored as JSON at `%APPDATA%\SVN Desktop\repositories.json` via 
 ### Shared Types
 `src/shared/types.ts` is imported by both main and renderer — the IPC channel constants (`IPC.*`) live there to avoid string duplication.
 
+## UI Design Reference
+
+**All UI behavior and visual design is based on GitHub Desktop release-3.5.11.**
+Reference repository: https://github.com/desktop/desktop/tree/release-3.5.11
+
+- Layout, spacing, colors, typography → match GitHub Desktop exactly
+- Interaction patterns (dropdown behavior, overlays, hover states) → match GitHub Desktop exactly
+- When a dropdown/panel opens, the rest of the screen gets a dark semi-transparent overlay (faded backdrop), same as GitHub Desktop
+- Dropdown menus are positioned `top: 100%` relative to their trigger button's parent section
+
 ## Prerequisites
 
 - Node.js 20+
