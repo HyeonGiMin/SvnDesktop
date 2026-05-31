@@ -1,5 +1,6 @@
 import { createSlice, createAsyncThunk, PayloadAction } from '@reduxjs/toolkit'
 import { SvnFileStatus, SvnDiff } from '@shared/types'
+import { pushToast } from './uiSlice'
 
 interface ChangesState {
   files: SvnFileStatus[]
@@ -7,9 +8,11 @@ interface ChangesState {
   commitMessage: string
   activeDiff: SvnDiff | null
   ignoreWhitespace: boolean
+  diffLoading: boolean
   loading: boolean
   committing: boolean
   error: string | null
+  lastAutoCheckedRepo: string | null
 }
 
 const initialState: ChangesState = {
@@ -18,9 +21,11 @@ const initialState: ChangesState = {
   commitMessage: '',
   activeDiff: null,
   ignoreWhitespace: false,
+  diffLoading: false,
   loading: false,
   committing: false,
   error: null,
+  lastAutoCheckedRepo: null,
 }
 
 export const fetchStatus = createAsyncThunk('changes/fetchStatus', (repoPath: string) =>
@@ -42,7 +47,7 @@ export const commitChanges = createAsyncThunk(
   'changes/commit',
   async (
     { repoPath, message, paths }: { repoPath: string; message: string; paths: string[] },
-    { getState }
+    { getState, dispatch }
   ) => {
     const state = getState() as { changes: ChangesState }
     const unversioned = paths.filter(
@@ -51,14 +56,18 @@ export const commitChanges = createAsyncThunk(
     if (unversioned.length > 0) {
       await window.api.svn.add(repoPath, unversioned)
     }
-    return window.api.svn.commit(repoPath, message, paths)
+    const revision = await window.api.svn.commit(repoPath, message, paths)
+    dispatch(pushToast({ kind: 'success', message: `Committed revision r${revision}` }))
+    return revision
   }
 )
 
 export const revertFiles = createAsyncThunk(
   'changes/revert',
-  ({ repoPath, paths }: { repoPath: string; paths: string[] }) =>
-    window.api.svn.revert(repoPath, paths)
+  async ({ repoPath, paths }: { repoPath: string; paths: string[] }, { dispatch }) => {
+    await window.api.svn.revert(repoPath, paths)
+    dispatch(pushToast({ kind: 'success', message: `Reverted ${paths.length} file${paths.length !== 1 ? 's' : ''}` }))
+  }
 )
 
 const changesSlice = createSlice({
@@ -85,6 +94,14 @@ const changesSlice = createSlice({
     clearDiff(state) {
       state.activeDiff = null
     },
+    addCheckedPaths(state, action: PayloadAction<string[]>) {
+      const toAdd = action.payload.filter(p => !state.checkedPaths.includes(p))
+      state.checkedPaths.push(...toAdd)
+    },
+    removeCheckedPaths(state, action: PayloadAction<string[]>) {
+      const toRemove = new Set(action.payload)
+      state.checkedPaths = state.checkedPaths.filter(p => !toRemove.has(p))
+    },
   },
   extraReducers: (builder) => {
     builder
@@ -95,19 +112,37 @@ const changesSlice = createSlice({
       .addCase(fetchStatus.fulfilled, (state, action) => {
         state.loading = false
         state.files = action.payload
-        // auto-check all versioned files
-        state.checkedPaths = action.payload
-          .filter((f) => f.status !== 'ignored')
-          .map((f) => f.path)
+        const repoPath = action.meta.arg
+        if (state.lastAutoCheckedRepo !== repoPath) {
+          // New repo selected: auto-check everything except ignored
+          state.lastAutoCheckedRepo = repoPath
+          state.checkedPaths = action.payload
+            .filter(f => f.status !== 'ignored')
+            .map(f => f.path)
+        } else {
+          // Same repo refreshed: keep user's manual choices, remove gone files, add new files
+          const existingPaths = new Set(action.payload.map(f => f.path))
+          const prevPaths = new Set(state.files.map(f => f.path))
+          state.checkedPaths = state.checkedPaths.filter(p => existingPaths.has(p))
+          const newPaths = action.payload
+            .filter(f => f.status !== 'ignored' && !prevPaths.has(f.path))
+            .map(f => f.path)
+          state.checkedPaths.push(...newPaths)
+        }
       })
       .addCase(fetchStatus.rejected, (state, action) => {
         state.loading = false
         state.error = action.error.message ?? 'Failed to get status'
       })
+      .addCase(fetchDiff.pending, (state) => {
+        state.diffLoading = true
+      })
       .addCase(fetchDiff.fulfilled, (state, action) => {
+        state.diffLoading = false
         state.activeDiff = action.payload
       })
       .addCase(fetchDiff.rejected, (state) => {
+        state.diffLoading = false
         state.activeDiff = null
       })
       .addCase(commitChanges.pending, (state) => {
@@ -120,18 +155,21 @@ const changesSlice = createSlice({
         state.checkedPaths = []
         state.commitMessage = ''
         state.activeDiff = null
+        state.lastAutoCheckedRepo = null
       })
       .addCase(commitChanges.rejected, (state, action) => {
         state.committing = false
         state.error = action.error.message ?? 'Commit failed'
       })
-      .addCase(revertFiles.fulfilled, (state, action) => {
-        const reverted = new Set(action.meta.arg.paths)
-        state.files = state.files.filter((f) => !reverted.has(f.path))
-        state.checkedPaths = state.checkedPaths.filter((p) => !reverted.has(p))
+      .addCase(revertFiles.rejected, (state, action) => {
+        state.error = action.error.message ?? 'Revert failed'
       })
   },
 })
 
-export const { setCheckedPaths, togglePath, setCommitMessage, setIgnoreWhitespace, clearDiff } = changesSlice.actions
+export const {
+  setCheckedPaths, togglePath, setCommitMessage,
+  setIgnoreWhitespace, clearDiff,
+  addCheckedPaths, removeCheckedPaths,
+} = changesSlice.actions
 export default changesSlice.reducer

@@ -1,4 +1,4 @@
-import React, { useState } from 'react'
+import React, { useEffect, useState } from 'react'
 import { useSelector } from 'react-redux'
 import { RootState } from './store'
 import { TitleBar } from './components/TitleBar/TitleBar'
@@ -8,6 +8,8 @@ import { ChangesSidebar } from './components/Changes/ChangesSidebar'
 import { HistorySidebar } from './components/History/HistorySidebar'
 import { DiffPanel } from './components/Diff/DiffPanel'
 import { EmptyState } from './components/EmptyState/EmptyState'
+import { ToastHost } from './components/Toast/ToastHost'
+import { useRepoRefresh } from './hooks/useRepoRefresh'
 import './App.css'
 
 export type Tab = 'changes' | 'history'
@@ -19,11 +21,23 @@ export default function App(): JSX.Element {
     (s: RootState) =>
       s.changes.files.filter(f => f.status !== 'unversioned' && f.status !== 'ignored').length
   )
+  const refresh = useRepoRefresh()
+
+  useEffect(() => {
+    function onKeyDown(e: KeyboardEvent): void {
+      if (e.key === 'F5') { e.preventDefault(); refresh() }
+      if ((e.ctrlKey || e.metaKey) && e.key === '1') { e.preventDefault(); setTab('changes') }
+      if ((e.ctrlKey || e.metaKey) && e.key === '2') { e.preventDefault(); setTab('history') }
+    }
+    window.addEventListener('keydown', onKeyDown)
+    return () => window.removeEventListener('keydown', onKeyDown)
+  }, [refresh])
 
   return (
     <div className="app">
       <TitleBar />
       <Toolbar />
+      <ToastHost />
 
       {selected ? (
         <div className="app-body">

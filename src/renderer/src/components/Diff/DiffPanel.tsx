@@ -15,21 +15,31 @@ export function DiffPanel({ tab }: Props): JSX.Element {
   const dispatch = useDispatch<AppDispatch>()
   const repoPath = useSelector((s: RootState) => s.repositories.selected?.path ?? '')
   const changesDiff = useSelector((s: RootState) => s.changes.activeDiff)
+  const changesDiffLoading = useSelector((s: RootState) => s.changes.diffLoading)
   const ignoreWhitespace = useSelector((s: RootState) => s.changes.ignoreWhitespace)
-  const { selectedEntry, activeDiff: historyDiff } = useSelector((s: RootState) => s.history)
+  const { selectedEntry, activeDiff: historyDiff, diffLoading: historyDiffLoading } =
+    useSelector((s: RootState) => s.history)
 
   const [mode, setMode] = useState<DiffMode>('unified')
   const [optionsOpen, setOptionsOpen] = useState(false)
 
   function handleIgnoreWhitespace(checked: boolean): void {
     dispatch(setIgnoreWhitespace(checked))
-    const diff = tab === 'changes' ? changesDiff : historyDiff
-    if (diff?.filePath && repoPath) {
-      dispatch(fetchDiff({ repoPath, filePath: diff.filePath }))
+    if (tab === 'history') {
+      if (historyDiff?.filePath && repoPath) {
+        dispatch(fetchRevisionDiff({ repoPath, filePath: historyDiff.filePath }))
+      }
+    } else {
+      if (changesDiff?.filePath && repoPath) {
+        dispatch(fetchDiff({ repoPath, filePath: changesDiff.filePath }))
+      }
     }
   }
 
   if (tab === 'changes') {
+    if (changesDiffLoading) {
+      return <div className="diff-panel-empty"><span className="diff-loading-dot" />Loading diff…</div>
+    }
     if (!changesDiff) {
       return (
         <div className="diff-panel-empty">

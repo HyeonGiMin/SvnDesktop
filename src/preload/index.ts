@@ -12,9 +12,22 @@ const api = {
       ipcRenderer.on('window:unmaximized', () => cb(false))
     },
   },
+  shell: {
+    openPath: (p: string): Promise<string> => ipcRenderer.invoke(IPC.SHELL_OPEN_PATH, p),
+    showInFolder: (p: string): Promise<void> => ipcRenderer.invoke(IPC.SHELL_SHOW_FOLDER, p),
+  },
+  clipboard: {
+    write: (text: string): Promise<void> => ipcRenderer.invoke(IPC.CLIPBOARD_WRITE, text),
+  },
   menu: {
     popup: (menuId: string, x: number, y: number) =>
       ipcRenderer.invoke(IPC.MENU_POPUP, menuId, x, y),
+    fileContext: (payload: {
+      filePath: string; relativePath: string; status: string; x: number; y: number
+    }): Promise<string | null> => ipcRenderer.invoke(IPC.MENU_FILE_CONTEXT, payload),
+    commitContext: (payload: {
+      revision: number; author: string; message: string; x: number; y: number
+    }): Promise<null> => ipcRenderer.invoke(IPC.MENU_COMMIT_CONTEXT, payload),
   },
   repos: {
     list: (): Promise<{ repos: import('../shared/types').Repository[], lastSelectedId: string | null }> =>

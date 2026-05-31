@@ -2,12 +2,14 @@ import { configureStore } from '@reduxjs/toolkit'
 import repositoriesReducer from './repositoriesSlice'
 import changesReducer from './changesSlice'
 import historyReducer from './historySlice'
+import uiReducer from './uiSlice'
 
 export const store = configureStore({
   reducer: {
     repositories: repositoriesReducer,
     changes: changesReducer,
     history: historyReducer,
+    ui: uiReducer,
   },
 })
 

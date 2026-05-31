@@ -1,4 +1,4 @@
-import { ipcMain, BrowserWindow, Menu, shell, dialog } from 'electron'
+import { ipcMain, BrowserWindow, Menu, shell, dialog, clipboard } from 'electron'
 import { IPC, Repository } from '../shared/types'
 import * as svn from './svn/SvnClient'
 import { loadRepositories, saveRepositories, loadLastSelectedId, saveLastSelectedId } from './svn/RepositoryStore'
@@ -109,6 +109,76 @@ export function registerIpcHandlers(win: BrowserWindow): void {
   ipcMain.handle(IPC.SVN_CHECKOUT, (_e, url: string, localPath: string) =>
     svn.checkout(url, localPath)
   )
+  // ── Shell / clipboard ─────────────────────────────────────────────────────
+  ipcMain.handle(IPC.SHELL_OPEN_PATH, (_e, p: string) => shell.openPath(p))
+  ipcMain.handle(IPC.SHELL_SHOW_FOLDER, (_e, p: string) => shell.showItemInFolder(p))
+  ipcMain.handle(IPC.CLIPBOARD_WRITE, (_e, text: string) => { clipboard.writeText(text) })
+
+  // ── File context menu ─────────────────────────────────────────────────────
+  ipcMain.handle(
+    IPC.MENU_FILE_CONTEXT,
+    (_e, { filePath, relativePath, status, x, y }: {
+      filePath: string; relativePath: string; status: string; x: number; y: number
+    }) =>
+      new Promise<string | null>(resolve => {
+        const sep = { type: 'separator' } as const
+        const versioned = !['unversioned', 'ignored'].includes(status)
+        const template = [
+          {
+            label: 'Open in Editor',
+            click: () => { shell.openPath(filePath); resolve(null) },
+          },
+          {
+            label: 'Show in Explorer',
+            click: () => { shell.showItemInFolder(filePath); resolve(null) },
+          },
+          sep,
+          {
+            label: 'Copy Path',
+            click: () => { clipboard.writeText(filePath); resolve(null) },
+          },
+          {
+            label: 'Copy Relative Path',
+            click: () => { clipboard.writeText(relativePath); resolve(null) },
+          },
+          ...(versioned ? [sep, {
+            label: 'Discard Changes',
+            click: () => resolve('discard'),
+          }] : []),
+        ]
+        const menu = Menu.buildFromTemplate(template as Electron.MenuItemConstructorOptions[])
+        menu.popup({ window: win, x: Math.round(x), y: Math.round(y), callback: () => resolve(null) })
+      })
+  )
+
+  // ── Commit context menu ───────────────────────────────────────────────────
+  ipcMain.handle(
+    IPC.MENU_COMMIT_CONTEXT,
+    (_e, { revision, author, message, x, y }: {
+      revision: number; author: string; message: string; x: number; y: number
+    }) =>
+      new Promise<null>(resolve => {
+        const sep = { type: 'separator' } as const
+        const template = [
+          {
+            label: `Copy Revision Number (r${revision})`,
+            click: () => { clipboard.writeText(String(revision)); resolve(null) },
+          },
+          {
+            label: 'Copy Author',
+            click: () => { clipboard.writeText(author); resolve(null) },
+          },
+          sep,
+          {
+            label: 'Copy Commit Message',
+            click: () => { clipboard.writeText(message); resolve(null) },
+          },
+        ]
+        const menu = Menu.buildFromTemplate(template as Electron.MenuItemConstructorOptions[])
+        menu.popup({ window: win, x: Math.round(x), y: Math.round(y), callback: () => resolve(null) })
+      })
+  )
+
   ipcMain.handle(IPC.DIALOG_BROWSE_FOLDER, async (_e, defaultPath?: string) => {
     const result = await dialog.showOpenDialog(win, {
       defaultPath,

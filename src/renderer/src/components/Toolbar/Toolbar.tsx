@@ -9,6 +9,8 @@ import {
 } from '../../store/repositoriesSlice'
 import { fetchStatus } from '../../store/changesSlice'
 import { fetchLog } from '../../store/historySlice'
+import { pushToast } from '../../store/uiSlice'
+import { useRepoRefresh } from '../../hooks/useRepoRefresh'
 import { AddRepositoryDialog } from './AddRepositoryDialog'
 import { CloneRepositoryDialog } from './CloneRepositoryDialog'
 import './Toolbar.css'
@@ -99,13 +101,21 @@ export function Toolbar(): JSX.Element {
     setDialog(null)
   }
 
+  const refresh = useRepoRefresh()
+
   async function handleUpdate(): Promise<void> {
     if (!selected || updating) return
     setUpdating(true)
-    await window.api.svn.update(selected.path).catch(() => {})
-    dispatch(fetchStatus(selected.path))
-    dispatch(fetchLog({ repoPath: selected.path }))
-    setUpdating(false)
+    try {
+      await window.api.svn.update(selected.path)
+      dispatch(pushToast({ kind: 'success', message: 'SVN Update completed' }))
+      refresh()
+    } catch (err: unknown) {
+      const msg = err instanceof Error ? err.message : 'SVN Update failed'
+      dispatch(pushToast({ kind: 'error', message: msg }))
+    } finally {
+      setUpdating(false)
+    }
   }
 
   const revLabel = svnInfo ? `r${svnInfo.revision}` : '—'

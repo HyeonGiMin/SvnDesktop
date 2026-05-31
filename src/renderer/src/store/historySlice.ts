@@ -5,6 +5,7 @@ interface HistoryState {
   entries: SvnLogEntry[]
   selectedEntry: SvnLogEntry | null
   activeDiff: SvnDiff | null
+  diffLoading: boolean
   loading: boolean
   error: string | null
 }
@@ -13,6 +14,7 @@ const initialState: HistoryState = {
   entries: [],
   selectedEntry: null,
   activeDiff: null,
+  diffLoading: false,
   loading: false,
   error: null,
 }
@@ -25,8 +27,10 @@ export const fetchLog = createAsyncThunk(
 
 export const fetchRevisionDiff = createAsyncThunk(
   'history/fetchDiff',
-  ({ repoPath, filePath }: { repoPath: string; filePath: string }) =>
-    window.api.svn.diff(repoPath, filePath)
+  ({ repoPath, filePath }: { repoPath: string; filePath: string }, { getState }) => {
+    const state = getState() as { changes: { ignoreWhitespace: boolean } }
+    return window.api.svn.diff(repoPath, filePath, state.changes.ignoreWhitespace)
+  }
 )
 
 const historySlice = createSlice({
@@ -52,8 +56,16 @@ const historySlice = createSlice({
         state.loading = false
         state.error = action.error.message ?? 'Failed to load log'
       })
+      .addCase(fetchRevisionDiff.pending, (state) => {
+        state.diffLoading = true
+      })
       .addCase(fetchRevisionDiff.fulfilled, (state, action) => {
+        state.diffLoading = false
         state.activeDiff = action.payload
+      })
+      .addCase(fetchRevisionDiff.rejected, (state) => {
+        state.diffLoading = false
+        state.activeDiff = null
       })
   },
 })
